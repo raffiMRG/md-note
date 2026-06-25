@@ -1,0 +1,27 @@
+# Go build artifacts
+backend/md-note-api
+backend/*.exe
+backend/*.test
+backend/*.out
+backend/vendor/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+
+# Environment (contains secrets — copy .env.example instead)
+.env
+
+# Docker volumes
+mysql_data/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db

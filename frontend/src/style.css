@@ -1,0 +1,86 @@
+:root {
+  --text: #2c2c2c;
+  --text-muted: #6b6375;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --border: #e5e4e7;
+  --accent: #2563eb;
+  --accent-bg: rgba(37, 99, 235, 0.08);
+  --danger: #dc2626;
+
+  font: 16px/150% system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+[data-theme='dark'] {
+  --text: #e2e2e2;
+  --text-muted: #9589a0;
+  --bg: #1a1a1a;
+  --surface: #242424;
+  --border: #383838;
+  --accent: #60a5fa;
+  --accent-bg: rgba(96, 165, 250, 0.12);
+  --danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  transition: background-color 0.2s, color 0.2s;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
