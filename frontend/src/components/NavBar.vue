@@ -12,10 +12,18 @@
         <router-link class="btn secondary" to="/tags">
           <i class="fa-solid fa-tags"></i> Kelola Tag
         </router-link>
-        <router-link class="btn secondary" to="/settings">
-          <i class="fa-solid fa-gear"></i>
-        </router-link>
-        <span class="username"><i class="fa-solid fa-user"></i> {{ authStore.user?.username }}</span>
+        <template v-if="authStore.isAdmin">
+          <router-link class="btn secondary" to="/admin/users">
+            <i class="fa-solid fa-users-gear"></i> Admin
+          </router-link>
+          <router-link class="btn secondary" to="/settings">
+            <i class="fa-solid fa-gear"></i>
+          </router-link>
+        </template>
+        <span class="username">
+          <i class="fa-solid fa-user"></i> {{ authStore.user?.username }}
+          <span v-if="authStore.isAdmin" class="role-badge">admin</span>
+        </span>
         <button type="button" class="btn secondary" @click="onLogout">
           <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
@@ -87,6 +95,18 @@ function onLogout() {
 .username {
   font-size: 14px;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
 }
 .theme-toggle {
   background: none;

@@ -9,6 +9,7 @@ import (
 
 const ContextUserIDKey = "userID"
 const ContextUsernameKey = "username"
+const ContextRoleKey = "role"
 
 func Middleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -27,6 +28,24 @@ func Middleware(secret string) gin.HandlerFunc {
 
 		c.Set(ContextUserIDKey, claims.UserID)
 		c.Set(ContextUsernameKey, claims.Username)
+		c.Set(ContextRoleKey, claims.Role)
 		c.Next()
 	}
+}
+
+func RequireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, _ := c.Get(ContextRoleKey)
+		if role != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "akses ditolak"})
+			return
+		}
+		c.Next()
+	}
+}
+
+func GetRole(c *gin.Context) string {
+	role, _ := c.Get(ContextRoleKey)
+	str, _ := role.(string)
+	return str
 }

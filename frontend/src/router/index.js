@@ -47,7 +47,13 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: () => import('../views/SettingsView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('../views/AdminUsersView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
 ]
 
@@ -61,6 +67,9 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return { name: 'dashboard' }
   }
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return { name: 'dashboard' }

@@ -49,13 +49,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: hash,
+		Role:         "penulis",
 	}
 	if err := h.users.Create(&user); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "username or email already taken"})
 		return
 	}
 
-	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username)
+	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
@@ -86,7 +87,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username)
+	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return

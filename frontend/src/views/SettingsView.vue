@@ -33,12 +33,43 @@
       </form>
       <p v-if="addError" class="error">{{ addError }}</p>
     </section>
+
+    <section class="section">
+      <h2><i class="fa-solid fa-database"></i> Backup & Restore</h2>
+      <p class="hint">
+        Export seluruh data (semua user, notes, tags) ke file JSON. Saat import, data yang sudah ada
+        akan dipertahankan — hanya data baru yang ditambahkan (merge).
+      </p>
+
+      <div class="backup-row">
+        <button class="btn" :disabled="exporting" @click="onExport">
+          <i :class="exporting ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-download'"></i>
+          Export Backup
+        </button>
+        <p v-if="exportError" class="error">{{ exportError }}</p>
+      </div>
+
+      <div class="backup-row restore-row">
+        <label class="file-label">
+          <i class="fa-solid fa-file-import"></i>
+          {{ importFile ? importFile.name : 'Pilih file backup (.json)' }}
+          <input type="file" accept=".json" class="file-input" @change="onFileChange" />
+        </label>
+        <button class="btn secondary" :disabled="!importFile || importing" @click="onImport">
+          <i :class="importing ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-upload'"></i>
+          Import
+        </button>
+      </div>
+      <p v-if="importError" class="error">{{ importError }}</p>
+      <p v-if="importSuccess" class="success">{{ importSuccess }}</p>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import { listCORSOrigins, addCORSOrigin, deleteCORSOrigin } from '../api/cors'
+import { exportBackup, importBackup } from '../api/backup'
 
 const origins = ref([])
 const newOrigin = ref('')
@@ -80,6 +111,56 @@ async function onDelete(o) {
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('id-ID', { dateStyle: 'medium' })
+}
+
+// Backup & Restore
+const exporting = ref(false)
+const exportError = ref('')
+const importFile = ref(null)
+const importing = ref(false)
+const importError = ref('')
+const importSuccess = ref('')
+
+async function onExport() {
+  exporting.value = true
+  exportError.value = ''
+  try {
+    const response = await exportBackup()
+    const url = URL.createObjectURL(response.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `md-note-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    exportError.value = 'Gagal mengekspor backup'
+  } finally {
+    exporting.value = false
+  }
+}
+
+function onFileChange(e) {
+  importFile.value = e.target.files[0] ?? null
+  importError.value = ''
+  importSuccess.value = ''
+}
+
+async function onImport() {
+  if (!importFile.value) return
+  importing.value = true
+  importError.value = ''
+  importSuccess.value = ''
+  try {
+    const text = await importFile.value.text()
+    const data = JSON.parse(text)
+    await importBackup(data)
+    importSuccess.value = 'Restore berhasil! Data dari backup telah digabungkan.'
+    importFile.value = null
+  } catch (e) {
+    importError.value = e.response?.data?.error || 'Gagal mengimpor backup. Pastikan file valid.'
+  } finally {
+    importing.value = false
+  }
 }
 </script>
 
@@ -194,5 +275,44 @@ h2 {
   border-radius: 10px;
   padding: 20px;
   margin-top: 20px;
+}
+
+.backup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.restore-row {
+  margin-top: 12px;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--surface);
+  transition: border-color 0.15s;
+}
+
+.file-label:hover {
+  border-color: var(--accent);
+}
+
+.file-input {
+  display: none;
+}
+
+.success {
+  color: #22c55e;
+  font-size: 13px;
+  margin: 8px 0 0;
 }
 </style>

@@ -132,6 +132,11 @@ func (h *NoteHandler) Update(c *gin.Context) {
 	}
 
 	userID := c.GetUint64(auth.ContextUserIDKey)
+	if auth.GetRole(c) != "admin" && (existing.CreatedBy == nil || *existing.CreatedBy != userID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "akses ditolak"})
+		return
+	}
+
 	existing.Title = req.Title
 	existing.Content = req.Content
 	existing.UpdatedBy = &userID
@@ -154,6 +159,18 @@ func (h *NoteHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	existing, err := h.notes.FindByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "note not found"})
+		return
+	}
+
+	userID := c.GetUint64(auth.ContextUserIDKey)
+	if auth.GetRole(c) != "admin" && (existing.CreatedBy == nil || *existing.CreatedBy != userID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "akses ditolak"})
 		return
 	}
 

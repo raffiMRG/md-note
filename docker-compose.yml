@@ -30,11 +30,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
-      PORT: ${API_PORT}
+      PORT: ${INTERNAL_API_PORT}
       # CORS_ORIGIN: http://localhost:5173
       CORS_ORIGIN: ${CORS_ORIGIN}
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "${EXTERNAL_API_PORT}:${INTERNAL_API_PORT}"
 
   frontend:
     build:

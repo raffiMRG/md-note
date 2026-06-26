@@ -18,6 +18,8 @@ func New(
 	noteHandler *handlers.NoteHandler,
 	tagHandler *handlers.TagHandler,
 	corsHandler *handlers.CORSHandler,
+	backupHandler *handlers.BackupHandler,
+	userHandler *handlers.UserHandler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -66,9 +68,20 @@ func New(
 			protected.POST("/tags", tagHandler.Create)
 			protected.PUT("/tags/:id", tagHandler.Update)
 			protected.DELETE("/tags/:id", tagHandler.Delete)
+		}
 
-			protected.POST("/cors-origins", corsHandler.Create)
-			protected.DELETE("/cors-origins/:id", corsHandler.Delete)
+		admin := api.Group("")
+		admin.Use(auth.Middleware(cfg.JWTSecret), auth.RequireAdmin())
+		{
+			admin.POST("/cors-origins", corsHandler.Create)
+			admin.DELETE("/cors-origins/:id", corsHandler.Delete)
+
+			admin.GET("/backup", backupHandler.Export)
+			admin.POST("/restore", backupHandler.Import)
+
+			admin.GET("/admin/users", userHandler.List)
+			admin.PUT("/admin/users/:id/role", userHandler.UpdateRole)
+			admin.DELETE("/admin/users/:id", userHandler.Delete)
 		}
 	}
 
