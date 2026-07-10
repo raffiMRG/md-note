@@ -5,7 +5,7 @@ const client = axios.create({
 })
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -18,6 +18,8 @@ client.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
       const { default: router } = await import('../router')
       router.push('/login')
     }

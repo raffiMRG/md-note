@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	DBHost      string
-	DBPort      string
-	DBUser      string
-	DBPassword  string
-	DBName      string
-	JWTSecret   string
-	Port        string
-	CORSOrigins []string // comma-separated in env var CORS_ORIGIN
+	DBHost               string
+	DBPort               string
+	DBUser               string
+	DBPassword           string
+	DBName               string
+	JWTSecret            string
+	JWTExpiresIn         time.Duration
+	JWTRememberExpiresIn time.Duration
+	Port                 string
+	CORSOrigins          []string // comma-separated in env var CORS_ORIGIN
 }
 
 func Load() Config {
@@ -27,14 +30,16 @@ func Load() Config {
 		}
 	}
 	return Config{
-		DBHost:      getEnv("DB_HOST", "localhost"),
-		DBPort:      getEnv("DB_PORT", "3306"),
-		DBUser:      getEnv("DB_USER", "root"),
-		DBPassword:  getEnv("DB_PASSWORD", ""),
-		DBName:      getEnv("DB_NAME", "md_note"),
-		JWTSecret:   getEnv("JWT_SECRET", "dev-secret-change-me"),
-		Port:        getEnv("PORT", "8080"),
-		CORSOrigins: origins,
+		DBHost:               getEnv("DB_HOST", "localhost"),
+		DBPort:               getEnv("DB_PORT", "3306"),
+		DBUser:               getEnv("DB_USER", "root"),
+		DBPassword:           getEnv("DB_PASSWORD", ""),
+		DBName:               getEnv("DB_NAME", "md_note"),
+		JWTSecret:            getEnv("JWT_SECRET", "dev-secret-change-me"),
+		JWTExpiresIn:         getDurationEnv("JWT_EXPIRES_IN", 24*time.Hour),
+		JWTRememberExpiresIn: getDurationEnv("JWT_REMEMBER_EXPIRES_IN", 720*time.Hour),
+		Port:                 getEnv("PORT", "8080"),
+		CORSOrigins:          origins,
 	}
 }
 
@@ -48,6 +53,15 @@ func (c Config) MySQLDSN() string {
 func getEnv(key, fallback string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getDurationEnv(key string, fallback time.Duration) time.Duration {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
 	}
 	return fallback
 }

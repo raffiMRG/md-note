@@ -48,7 +48,7 @@ func main() {
 
 	seedAdmin(userRepo)
 
-	authHandler := handlers.NewAuthHandler(userRepo, cfg.JWTSecret)
+	authHandler := handlers.NewAuthHandler(userRepo, cfg.JWTSecret, cfg.JWTExpiresIn, cfg.JWTRememberExpiresIn)
 	noteHandler := handlers.NewNoteHandler(noteRepo)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	corsHandler := handlers.NewCORSHandler(corsRepo, corsCache.Add, corsCache.Remove)

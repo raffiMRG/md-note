@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,12 +14,19 @@ import (
 )
 
 type AuthHandler struct {
-	users     *repository.UserRepository
-	jwtSecret string
+	users                *repository.UserRepository
+	jwtSecret            string
+	jwtExpiresIn         time.Duration
+	jwtRememberExpiresIn time.Duration
 }
 
-func NewAuthHandler(users *repository.UserRepository, jwtSecret string) *AuthHandler {
-	return &AuthHandler{users: users, jwtSecret: jwtSecret}
+func NewAuthHandler(users *repository.UserRepository, jwtSecret string, jwtExpiresIn, jwtRememberExpiresIn time.Duration) *AuthHandler {
+	return &AuthHandler{
+		users:                users,
+		jwtSecret:            jwtSecret,
+		jwtExpiresIn:         jwtExpiresIn,
+		jwtRememberExpiresIn: jwtRememberExpiresIn,
+	}
 }
 
 type registerRequest struct {
@@ -28,8 +36,9 @@ type registerRequest struct {
 }
 
 type loginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Username   string `json:"username" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	RememberMe bool   `json:"remember_me"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -56,7 +65,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role)
+	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role, h.jwtExpiresIn)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
@@ -72,10 +81,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.users.FindByEmail(req.Email)
+	user, err := h.users.FindByUsername(req.Username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to look up user"})
@@ -83,11 +92,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if !auth.CheckPassword(user.PasswordHash, req.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}
 
-	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role)
+	ttl := h.jwtExpiresIn
+	if req.RememberMe {
+		ttl = h.jwtRememberExpiresIn
+	}
+
+	token, err := auth.GenerateToken(h.jwtSecret, user.ID, user.Username, user.Role, ttl)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return

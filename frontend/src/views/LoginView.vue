@@ -4,12 +4,16 @@
     <h2>Login</h2>
     <form @submit.prevent="onSubmit">
       <label>
-        Email
-        <input v-model="email" type="email" required />
+        Username
+        <input v-model="username" type="text" required />
       </label>
       <label>
         Password
         <input v-model="password" type="password" required />
+      </label>
+      <label class="remember-me">
+        <input v-model="rememberMe" type="checkbox" />
+        Ingat saya
       </label>
       <p v-if="error" class="error">{{ error }}</p>
       <button type="submit" class="btn" :disabled="loading">{{ loading ? 'Masuk...' : 'Login' }}</button>
@@ -23,8 +27,9 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
-const email = ref('')
+const username = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 const error = ref('')
 const loading = ref(false)
 
@@ -36,7 +41,10 @@ async function onSubmit() {
   error.value = ''
   loading.value = true
   try {
-    await authStore.login({ email: email.value, password: password.value })
+    await authStore.login(
+      { username: username.value, password: password.value, remember_me: rememberMe.value },
+      rememberMe.value,
+    )
     router.push(route.query.redirect || '/')
   } catch (err) {
     error.value = err.response?.data?.error || 'Login gagal'
@@ -69,6 +77,15 @@ input {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+.remember-me {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.remember-me input {
+  padding: 0;
+  width: auto;
 }
 .error {
   color: var(--danger);
