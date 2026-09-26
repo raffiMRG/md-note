@@ -25,3 +25,5 @@ mysql_data/
 *.swo
 *~
 Thumbs.db
+
+z_tmp/

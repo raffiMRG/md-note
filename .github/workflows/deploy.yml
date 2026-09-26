@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Backend vet & build
+        working-directory: backend
+        run: go vet ./... && go build ./...
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend build
+        working-directory: frontend
+        run: npm ci && npm run build
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build & push backend
+        run: |
+          docker build -t raffimrg/md-note-backend:latest -t raffimrg/md-note-backend:${{ github.sha }} ./backend
+          docker push --all-tags raffimrg/md-note-backend
+
+      - name: Build & push frontend
+        run: |
+          docker build -t raffimrg/md-note-frontend:latest -t raffimrg/md-note-frontend:${{ github.sha }} ./frontend
+          docker push --all-tags raffimrg/md-note-frontend
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    env:
+      COMPOSE_FILE: docker-compose.prod.yml
+      COMPOSE_PROJECT_NAME: md-note
+    defaults:
+      run:
+        # project yang sudah ada di server; .env produksi ada di folder ini
+        working-directory: /home/mrg/code/md-note
+    steps:
+      - name: Update source (compose file)
+        run: git pull --ff-only
+
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Pull & restart
+        run: |
+          docker compose pull
+          docker compose up -d --remove-orphans
+
+      - name: Healthcheck
+        run: |
+          PORT=$(grep '^EXTERNAL_API_PORT=' .env | cut -d= -f2)
+          for i in $(seq 1 20); do
+            curl -fs "http://localhost:$PORT/healthz" && exit 0
+            sleep 3
+          done
+          docker compose logs --tail 50 backend
+          exit 1
+
+      - name: Cleanup old images
+        run: docker image prune -f

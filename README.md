@@ -84,7 +84,7 @@ docker compose up -d --build
 | `DB_ROOT_PASSWORD` | Password root MySQL |
 | `JWT_SECRET` | Secret untuk signing JWT (ganti dengan nilai acak yang kuat) |
 | `CORS_ORIGIN` | Origin yang diizinkan, pisahkan dengan koma untuk beberapa origin |
-| `VITE_API_BASE_URL` | URL API yang diakses browser, sesuaikan dengan IP/port backend |
+| `VITE_API_BASE_URL` | Opsional (build-time). Default `/api`, diproxy nginx ke backend |
 
 ### Akses dari jaringan lokal (LAN)
 

@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
@@ -9,7 +10,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "${DB_HOST_PORT}:3306"
+      - "127.0.0.1:${DB_HOST_PORT}:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 5s
@@ -17,9 +18,8 @@ services:
       retries: 10
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: raffimrg/md-note-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
@@ -33,15 +33,13 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       JWT_REMEMBER_EXPIRES_IN: ${JWT_REMEMBER_EXPIRES_IN}
       PORT: ${INTERNAL_API_PORT}
-      # CORS_ORIGIN: http://localhost:5173
       CORS_ORIGIN: ${CORS_ORIGIN}
     ports:
       - "${EXTERNAL_API_PORT}:${INTERNAL_API_PORT}"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: raffimrg/md-note-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     depends_on:
       - backend
     environment:
