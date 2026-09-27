@@ -20,6 +20,7 @@ func New(
 	corsHandler *handlers.CORSHandler,
 	backupHandler *handlers.BackupHandler,
 	userHandler *handlers.UserHandler,
+	uploadHandler *handlers.UploadHandler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -48,10 +49,16 @@ func New(
 		api.POST("/auth/register", authHandler.Register)
 		api.POST("/auth/login", authHandler.Login)
 
-		api.GET("/notes", noteHandler.List)
-		api.GET("/notes/search", noteHandler.Search)
-		api.GET("/notes/:id", noteHandler.Get)
+		public := api.Group("", auth.OptionalMiddleware(cfg.JWTSecret))
+		public.GET("/notes", noteHandler.List)
+		public.GET("/notes/search", noteHandler.Search)
+		public.GET("/notes/:id", noteHandler.Get)
 		api.GET("/tags", tagHandler.List)
+
+		uploads := api.Group("/uploads", func(c *gin.Context) {
+			c.Header("X-Content-Type-Options", "nosniff")
+		})
+		uploads.Static("/", cfg.UploadDir)
 
 		// CORS origins list is readable by anyone (client may need to self-check)
 		api.GET("/cors-origins", corsHandler.List)
@@ -68,6 +75,8 @@ func New(
 			protected.POST("/tags", tagHandler.Create)
 			protected.PUT("/tags/:id", tagHandler.Update)
 			protected.DELETE("/tags/:id", tagHandler.Delete)
+
+			protected.POST("/uploads", uploadHandler.Upload)
 		}
 
 		admin := api.Group("")

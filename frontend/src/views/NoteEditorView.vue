@@ -5,7 +5,11 @@
     <template v-else>
       <input v-model="title" class="title-input" placeholder="Judul tulisan" />
       <TagInput v-model="selectedTagIds" :available-tags="notesStore.tags" @create-tag="onCreateTag" />
-      <MdEditor v-model="content" language="en-US" style="height: 480px" />
+      <label class="private-toggle">
+        <input v-model="isPrivate" type="checkbox" />
+        <i class="fa-solid fa-lock"></i> Private — hanya bisa dilihat oleh saya
+      </label>
+      <MdEditor v-model="content" language="en-US" @on-upload-img="onUploadImg" style="height: 480px" />
       <div class="actions">
         <button type="button" class="btn" :disabled="saving" @click="onSave">
           <i :class="saving ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-floppy-disk'"></i>
@@ -26,6 +30,7 @@ import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useNotesStore } from '../stores/notes'
 import TagInput from '../components/TagInput.vue'
+import { uploadImage } from '../api/uploads'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +40,7 @@ const isEdit = computed(() => route.name === 'note-edit')
 const title = ref('')
 const content = ref('')
 const selectedTagIds = ref([])
+const isPrivate = ref(false)
 const saving = ref(false)
 const loadingNote = ref(isEdit.value)
 
@@ -45,10 +51,19 @@ async function onCreateTag(name) {
   selectedTagIds.value.push(tag.id)
 }
 
+async function onUploadImg(files, callback) {
+  try {
+    const results = await Promise.all(files.map(uploadImage))
+    callback(results.map((res) => res.data.url))
+  } catch (err) {
+    alert(err.response?.data?.error || 'Gagal upload gambar')
+  }
+}
+
 async function onSave() {
   saving.value = true
   try {
-    const payload = { title: title.value, content: content.value, tag_ids: selectedTagIds.value }
+    const payload = { title: title.value, content: content.value, tag_ids: selectedTagIds.value, is_private: isPrivate.value }
     if (isEdit.value) {
       await notesStore.updateNote(route.params.id, payload)
       router.push(`/notes/${route.params.id}`)
@@ -68,6 +83,7 @@ onMounted(async () => {
     title.value = note.title
     content.value = note.content
     selectedTagIds.value = note.tags.map((tag) => tag.id)
+    isPrivate.value = note.is_private
     loadingNote.value = false
   }
 })
@@ -81,6 +97,14 @@ onMounted(async () => {
   border: 1px solid var(--border);
   border-radius: 6px;
   margin: 12px 0;
+}
+.private-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+  cursor: pointer;
 }
 .actions {
   display: flex;

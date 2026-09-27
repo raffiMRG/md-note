@@ -20,9 +20,15 @@ func NewNoteHandler(notes *repository.NoteRepository) *NoteHandler {
 }
 
 type noteRequest struct {
-	Title   string   `json:"title" binding:"required"`
-	Content string   `json:"content" binding:"required"`
-	TagIDs  []uint64 `json:"tag_ids"`
+	Title     string   `json:"title" binding:"required"`
+	Content   string   `json:"content" binding:"required"`
+	TagIDs    []uint64 `json:"tag_ids"`
+	IsPrivate bool     `json:"is_private"`
+}
+
+// Tulisan private hanya terlihat oleh penulisnya (admin juga tidak)
+func canView(c *gin.Context, note *models.Note) bool {
+	return !note.IsPrivate || (note.CreatedBy != nil && *note.CreatedBy == c.GetUint64(auth.ContextUserIDKey))
 }
 
 func pagination(c *gin.Context) (page, limit int) {
@@ -41,7 +47,7 @@ func (h *NoteHandler) List(c *gin.Context) {
 	page, limit := pagination(c)
 	tagSlug := c.Query("tag")
 
-	notes, total, err := h.notes.List(tagSlug, page, limit)
+	notes, total, err := h.notes.List(c.GetUint64(auth.ContextUserIDKey), tagSlug, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list notes"})
 		return
@@ -58,7 +64,7 @@ func (h *NoteHandler) Search(c *gin.Context) {
 	}
 	page, limit := pagination(c)
 
-	notes, total, err := h.notes.Search(q, page, limit)
+	notes, total, err := h.notes.Search(c.GetUint64(auth.ContextUserIDKey), q, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to search notes"})
 		return
@@ -75,7 +81,7 @@ func (h *NoteHandler) Get(c *gin.Context) {
 	}
 
 	note, err := h.notes.FindByID(id)
-	if err != nil {
+	if err != nil || !canView(c, note) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "note not found"})
 		return
 	}
@@ -94,6 +100,7 @@ func (h *NoteHandler) Create(c *gin.Context) {
 	note := models.Note{
 		Title:     req.Title,
 		Content:   req.Content,
+		IsPrivate: req.IsPrivate,
 		CreatedBy: &userID,
 		UpdatedBy: &userID,
 	}
@@ -126,7 +133,7 @@ func (h *NoteHandler) Update(c *gin.Context) {
 	}
 
 	existing, err := h.notes.FindByID(id)
-	if err != nil {
+	if err != nil || !canView(c, existing) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "note not found"})
 		return
 	}
@@ -139,6 +146,7 @@ func (h *NoteHandler) Update(c *gin.Context) {
 
 	existing.Title = req.Title
 	existing.Content = req.Content
+	existing.IsPrivate = req.IsPrivate
 	existing.UpdatedBy = &userID
 
 	if err := h.notes.Update(existing, req.TagIDs); err != nil {
@@ -163,7 +171,7 @@ func (h *NoteHandler) Delete(c *gin.Context) {
 	}
 
 	existing, err := h.notes.FindByID(id)
-	if err != nil {
+	if err != nil || !canView(c, existing) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "note not found"})
 		return
 	}

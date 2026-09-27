@@ -1,6 +1,6 @@
 <template>
   <router-link class="note-card" :to="`/notes/${note.id}`">
-    <h3>{{ note.title }}</h3>
+    <h3><i v-if="note.is_private" class="fa-solid fa-lock" title="Private"></i> {{ note.title }}</h3>
     <p class="excerpt">{{ excerpt }}</p>
     <div class="tags">
       <span v-for="tag in note.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>

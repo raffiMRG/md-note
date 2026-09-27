@@ -31,8 +31,15 @@ func (r *NoteRepository) FindByID(id uint64) (*models.Note, error) {
 	return &note, nil
 }
 
-func (r *NoteRepository) List(tagSlug string, page, limit int) ([]models.Note, int64, error) {
-	base := r.db.Model(&models.Note{})
+// visibleTo: tulisan publik + tulisan private milik viewer (viewerID 0 = anonim)
+func visibleTo(viewerID uint64) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("notes.is_private = FALSE OR notes.created_by = ?", viewerID)
+	}
+}
+
+func (r *NoteRepository) List(viewerID uint64, tagSlug string, page, limit int) ([]models.Note, int64, error) {
+	base := r.db.Model(&models.Note{}).Scopes(visibleTo(viewerID))
 	if tagSlug != "" {
 		base = base.Joins("JOIN note_tags ON note_tags.note_id = notes.id").
 			Joins("JOIN tags ON tags.id = note_tags.tag_id AND tags.slug = ?", tagSlug)
@@ -54,18 +61,18 @@ func (r *NoteRepository) List(tagSlug string, page, limit int) ([]models.Note, i
 	return notes, total, nil
 }
 
-func (r *NoteRepository) Search(query string, page, limit int) ([]models.Note, int64, error) {
+func (r *NoteRepository) Search(viewerID uint64, query string, page, limit int) ([]models.Note, int64, error) {
 	matchExpr := "MATCH(notes.title, notes.content) AGAINST (? IN NATURAL LANGUAGE MODE)"
 
 	var total int64
-	if err := r.db.Model(&models.Note{}).Where(matchExpr, query).Count(&total).Error; err != nil {
+	if err := r.db.Model(&models.Note{}).Scopes(visibleTo(viewerID)).Where(matchExpr, query).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	var notes []models.Note
 	offset := (page - 1) * limit
 	err := r.db.Preload("Tags").Preload("CreatedByUser").Preload("UpdatedByUser").
-		Where(matchExpr, query).
+		Scopes(visibleTo(viewerID)).Where(matchExpr, query).
 		Order("notes.updated_at DESC").Limit(limit).Offset(offset).
 		Find(&notes).Error
 	if err != nil {
@@ -81,8 +88,9 @@ func (r *NoteRepository) Update(note *models.Note, tagIDs []uint64) error {
 		// CreatedByUser/UpdatedByUser preloaded, and Save() would auto-sync updated_by back
 		// to the stale preloaded association's ID, clobbering the new editor's user ID.
 		updates := map[string]interface{}{
-			"title":   note.Title,
-			"content": note.Content,
+			"title":      note.Title,
+			"content":    note.Content,
+			"is_private": note.IsPrivate,
 		}
 		if note.UpdatedBy != nil {
 			updates["updated_by"] = *note.UpdatedBy

@@ -27,3 +27,5 @@ mysql_data/
 Thumbs.db
 
 z_tmp/
+backend/uploads/
+/uploads/

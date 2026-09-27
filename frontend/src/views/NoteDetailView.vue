@@ -8,7 +8,7 @@
     <div class="titlebar">
       <div class="titlebar-left">
         <i class="fa-regular fa-file-lines titlebar-icon"></i>
-        <span class="titlebar-title">{{ note.title }} — Notepad</span>
+        <span class="titlebar-title"><i v-if="note.is_private" class="fa-solid fa-lock" title="Private"></i> {{ note.title }} — Notepad</span>
       </div>
       <div class="titlebar-controls">
         <button class="wbtn" title="Kembali ke beranda" @click="router.push('/')"><i class="fa-solid fa-minus"></i></button>

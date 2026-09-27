@@ -6,6 +6,7 @@ type Note struct {
 	ID            uint64    `gorm:"primaryKey" json:"id"`
 	Title         string    `gorm:"size:255" json:"title"`
 	Content       string    `gorm:"type:mediumtext" json:"content"`
+	IsPrivate     bool      `json:"is_private"`
 	CreatedBy     *uint64   `json:"created_by"`
 	UpdatedBy     *uint64   `json:"updated_by"`
 	CreatedByUser *User     `gorm:"foreignKey:CreatedBy" json:"created_by_user,omitempty"`

@@ -18,6 +18,7 @@ type Config struct {
 	JWTRememberExpiresIn time.Duration
 	Port                 string
 	CORSOrigins          []string // comma-separated in env var CORS_ORIGIN
+	UploadDir            string
 }
 
 func Load() Config {
@@ -40,6 +41,7 @@ func Load() Config {
 		JWTRememberExpiresIn: getDurationEnv("JWT_REMEMBER_EXPIRES_IN", 720*time.Hour),
 		Port:                 getEnv("PORT", "8080"),
 		CORSOrigins:          origins,
+		UploadDir:            getEnv("UPLOAD_DIR", "uploads"),
 	}
 }
 

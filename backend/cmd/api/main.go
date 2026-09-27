@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"md-note/backend/internal/auth"
 	"md-note/backend/internal/config"
@@ -52,10 +53,15 @@ func main() {
 	noteHandler := handlers.NewNoteHandler(noteRepo)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	corsHandler := handlers.NewCORSHandler(corsRepo, corsCache.Add, corsCache.Remove)
-	backupHandler := handlers.NewBackupHandler(gdb)
+	backupHandler := handlers.NewBackupHandler(gdb, cfg.UploadDir)
 	userHandler := handlers.NewUserHandler(userRepo)
 
-	r := router.New(cfg, corsCache, authHandler, noteHandler, tagHandler, corsHandler, backupHandler, userHandler)
+	if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
+		log.Fatalf("create upload dir failed: %v", err)
+	}
+	uploadHandler := handlers.NewUploadHandler(cfg.UploadDir)
+
+	r := router.New(cfg, corsCache, authHandler, noteHandler, tagHandler, corsHandler, backupHandler, userHandler, uploadHandler)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {

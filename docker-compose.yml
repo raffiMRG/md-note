@@ -35,6 +35,10 @@ services:
       PORT: ${INTERNAL_API_PORT}
       # CORS_ORIGIN: http://localhost:5173
       CORS_ORIGIN: ${CORS_ORIGIN}
+      UPLOAD_DIR: /uploads
+    volumes:
+      # folder di host (bind mount), aman walau volume docker dihapus
+      - ${UPLOAD_HOST_DIR:-./uploads}:/uploads
     ports:
       - "${EXTERNAL_API_PORT}:${INTERNAL_API_PORT}"
 

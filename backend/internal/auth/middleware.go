@@ -33,6 +33,21 @@ func Middleware(secret string) gin.HandlerFunc {
 	}
 }
 
+// OptionalMiddleware mengisi context user jika token valid, tapi tetap lanjut untuk pengunjung anonim
+func OptionalMiddleware(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer ")
+		if ok {
+			if claims, err := ParseToken(secret, tokenStr); err == nil {
+				c.Set(ContextUserIDKey, claims.UserID)
+				c.Set(ContextUsernameKey, claims.Username)
+				c.Set(ContextRoleKey, claims.Role)
+			}
+		}
+		c.Next()
+	}
+}
+
 func RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get(ContextRoleKey)
